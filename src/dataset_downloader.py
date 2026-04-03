@@ -4,6 +4,7 @@ import json
 import re
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urlsplit
 
 import requests
 
@@ -52,6 +53,7 @@ class DatasetDownloader:
             "metadata_path": None,
             "resources": [],
             "data_files": [],
+            "failed_resources": [],
         }
 
         try:
@@ -59,6 +61,12 @@ class DatasetDownloader:
             result["metadata_path"] = str(path)
         except Exception as exc:
             self._logger.error("Could not save metadata for dataset %s: %s", dataset_id, exc)
+            result["failed_resources"].append(
+                {
+                    "reference": self._metadata_filename(dataset),
+                    "url": "",
+                }
+            )
 
         if download_resources:
             for resource in self._extract_resources(dataset):
@@ -72,16 +80,19 @@ class DatasetDownloader:
         output_subdir: Optional[str] = None,
     ) -> Path:
         """Serialize a dataset record to JSON and return the file path."""
-        dataset_id = self._sanitize_id(dataset.get("id", "unknown"))
-        raw_title = dataset.get("titleStudy", "untitled")[:50]
-        safe_title = "".join(
-            c if c.isalnum() or c in (" ", "-", "_") else "_" for c in raw_title
-        )
-        path = self._resolve_path(f"{dataset_id}_{safe_title}.json", output_subdir)
+        path = self._resolve_path(self._metadata_filename(dataset), output_subdir)
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(dataset, fh, indent=2, ensure_ascii=False)
         self._logger.debug("Saved metadata -> %s", path)
         return path
+
+    def _metadata_filename(self, dataset: dict[str, Any]) -> str:
+        dataset_id = self._sanitize_id(dataset.get("id", "unknown"))
+        raw_title = str(dataset.get("titleStudy", "untitled"))[:50]
+        safe_title = "".join(
+            c if c.isalnum() or c in (" ", "-", "_") else "_" for c in raw_title
+        )
+        return f"{dataset_id}_{safe_title}.json"
 
     def download_resource(
         self,
@@ -124,6 +135,7 @@ class DatasetDownloader:
         self,
         url: str,
         output_subdir: Optional[str] = None,
+        failed_resources: Optional[list[dict[str, str]]] = None,
     ) -> list[Path]:
         """Scrape a landing page and download any directly linked data files."""
         downloaded: list[Path] = []
@@ -135,10 +147,12 @@ class DatasetDownloader:
             self._logger.debug("Found %s file link(s) on %s", len(file_urls), url)
 
             for file_url in file_urls:
-                filename = file_url.split("/")[-1]
+                filename = Path(urlsplit(file_url).path).name or "unknown"
                 path = self.download_resource(file_url, filename, output_subdir=output_subdir)
                 if path:
                     downloaded.append(path)
+                elif failed_resources is not None:
+                    failed_resources.append({"reference": filename, "url": file_url})
         except Exception as exc:
             self._logger.debug("Could not parse landing page %s: %s", url, exc)
 
@@ -171,11 +185,21 @@ class DatasetDownloader:
             path = self.download_resource(url, "metadata.xml", output_subdir=subdir)
             if path:
                 result["resources"].append(str(path))
+            else:
+                result["failed_resources"].append({"reference": "metadata.xml", "url": url})
 
         elif rtype == "landing_page" and download_files:
             self._logger.debug("Exploring landing page: %s", url)
-            for file_path in self.find_downloadable_files(url, subdir):
+            for file_path in self.find_downloadable_files(
+                url,
+                subdir,
+                failed_resources=result["failed_resources"],
+            ):
                 result["data_files"].append(str(file_path))
             path = self.download_resource(url, "landing_page.html", output_subdir=subdir)
             if path:
                 result["resources"].append(str(path))
+            else:
+                result["failed_resources"].append(
+                    {"reference": "landing_page.html", "url": url}
+                )

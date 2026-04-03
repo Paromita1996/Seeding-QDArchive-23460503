@@ -70,8 +70,14 @@ class MetadataDatabase:
         )
         project_id = self.projects.insert(project)
 
-        for path in self._collect_all_paths(download_result):
-            self.files.insert(ProjectFile.from_path(project_id=project_id, file_path=path))
+        for file_reference, status in self._collect_file_references(download_result):
+            self.files.insert(
+                ProjectFile.from_reference(
+                    project_id=project_id,
+                    reference=file_reference,
+                    status=status,
+                )
+            )
 
         for term in self._extract_keywords(dataset):
             self.keywords.insert(ProjectKeyword(project_id=project_id, keyword=term))
@@ -123,15 +129,22 @@ class MetadataDatabase:
         )
 
     @staticmethod
-    def _collect_all_paths(download_result: dict[str, Any]) -> list[str]:
-        values: list[str] = []
+    def _collect_file_references(download_result: dict[str, Any]) -> list[tuple[str, str]]:
+        values: list[tuple[str, str]] = []
         metadata_path = download_result.get("metadata_path")
         if metadata_path:
-            values.append(str(metadata_path))
+            values.append((str(metadata_path), "SUCCEEDED"))
         for value in download_result.get("resources", []) or []:
-            values.append(str(value))
+            values.append((str(value), "SUCCEEDED"))
         for value in download_result.get("data_files", []) or []:
-            values.append(str(value))
+            values.append((str(value), "SUCCEEDED"))
+        for failed in download_result.get("failed_resources", []) or []:
+            if isinstance(failed, dict):
+                reference = str(failed.get("reference") or failed.get("url") or "").strip()
+            else:
+                reference = str(failed).strip()
+            if reference:
+                values.append((reference, "FAILED"))
         return values
 
     @staticmethod

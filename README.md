@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-## Repository for Paromita Das to work on Master Project "Seeding QDArchive".
-Student ID: 23460503
-=======
 # Seeding QD Archive - CESSDA Data Extractor
 
 A Python tool for querying the CESSDA (Consortium of European Social Science Data Archives) Data Catalogue API and downloading study metadata and resources.
@@ -286,4 +282,3 @@ This project is open source. Please check the LICENSE file for details.
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
->>>>>>> 1ad3763 (initilize the project with ceesda and qdr datasets)

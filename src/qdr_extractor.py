@@ -135,6 +135,7 @@ class QDRExtractor:
             "metadata_path": None,
             "resources": [],
             "data_files": [],
+            "failed_resources": [],
         }
 
         # 1. Save the normalized metadata as JSON
@@ -143,6 +144,12 @@ class QDRExtractor:
             result["metadata_path"] = str(path)
         except Exception as exc:
             logger.error("Could not save metadata for QDR dataset %s: %s", global_id, exc)
+            result["failed_resources"].append(
+                {
+                    "reference": self.downloader._metadata_filename(dataset),
+                    "url": "",
+                }
+            )
 
         # 2. Download landing page
         landing_url = dataset.get("studyUrl")
@@ -152,6 +159,10 @@ class QDRExtractor:
             )
             if path:
                 result["resources"].append(str(path))
+            else:
+                result["failed_resources"].append(
+                    {"reference": "landing_page.html", "url": str(landing_url)}
+                )
 
         # 3. Download individual data files via the Dataverse Access API
         files: list[dict[str, Any]] = []
@@ -190,6 +201,10 @@ class QDRExtractor:
                         )
                         if path:
                             result["data_files"].append(str(path))
+                        else:
+                            result["failed_resources"].append(
+                                {"reference": str(filename), "url": url}
+                            )
             except Exception as exc:
                 logger.warning(
                     "Could not fetch file list for QDR dataset %s: %s", global_id, exc
