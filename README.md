@@ -11,7 +11,7 @@ The project focuses on capturing **Qualitative Data Analysis (QDA) files** (e.g.
 * **Name:** Paromita Das
 * **Email:** paromita.das@fau.de
 * **Student ID:** 23460503
-* **Institution:** FAU Erlangen, Professorship for Open-Source Software
+* **Institution:** FAU Erlangen
 * **Course:** Winter 2025 / 26 + Summer 2026
 
 ---
@@ -40,9 +40,3 @@ I developed a **Python CLI application** that utilizes repository APIs to query 
 * **Output:** A database export and a folder containing all downloaded research files.
 
 ---
-
-## Contact
-**Professorship for Open-Source Software**
-Dirk Riehle, FAU Erlangen
-Email: dirk.riehle@fau.de
-Website: https://moo.uni1.de
