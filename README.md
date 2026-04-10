@@ -24,8 +24,8 @@ I developed a **Python CLI application** that utilizes repository APIs to query 
 
 | Source | Reference ID | Query / Method | Projects Extracted |
 | :--- | :--- | :--- | :--- |
-| **CESSDA** | 13 | API Query: "interview questions" | 2,943 |
-| **QDR** | 4 | API Query | 1,477 |
+| **CESSDA** | 13 | API Query: "interview questions" | 2,953 |
+| **QDR** | 4 | API Query | 192 |
 
 ### Implementation Details
 * **Pipeline:** The application downloads the entire research project folder, including metadata.
